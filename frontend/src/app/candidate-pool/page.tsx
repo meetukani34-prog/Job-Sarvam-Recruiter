@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { Users, Search, Filter, MoreHorizontal, CheckCircle2, Clock, XCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Users, Search, Filter, MoreHorizontal, CheckCircle2, Clock, XCircle, AlertCircle, RefreshCw, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 import type { RankedCandidate, FlexibleJob, FlexibleSkill } from "@/types/candidate";
 
 export default function CandidatePoolPage() {
@@ -38,6 +39,24 @@ export default function CandidatePoolPage() {
         setSyncMessage("");
       }, 1500);
     }, 1000);
+  };
+
+  const handleExportXLSX = () => {
+    if (realCandidates.length === 0) {
+      alert("No data available to export. Please run the ranking engine on the Dashboard first.");
+      return;
+    }
+    const exportData = realCandidates.map(c => ({
+      candidate_id: c.candidate_id,
+      rank: c.rank,
+      score: c.score,
+      reasoning: c.reasoning
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Candidates");
+    XLSX.writeFile(workbook, "submission.xlsx");
   };
 
   useEffect(() => {
@@ -86,14 +105,23 @@ export default function CandidatePoolPage() {
                 <h1 className="text-2xl font-bold tracking-tight">Candidate Pool</h1>
                 <p className="text-muted text-sm mt-1">Manage and track your sourced candidates across all integrated pipelines.</p>
               </div>
-              <button 
-                onClick={handleSync}
-                disabled={isSyncing}
-                className="px-4 py-2 bg-emerald-glow hover:bg-emerald-bright disabled:opacity-70 disabled:hover:bg-emerald-glow text-[#0d0d11] rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
-              >
-                {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <Users size={16} />}
-                {isSyncing ? syncMessage : "Sync ATS Data"}
-              </button>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handleExportXLSX}
+                  className="px-4 py-2 bg-surface hover:bg-surface-hover text-foreground border border-border-subtle rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                >
+                  <Download size={16} />
+                  Export XLSX
+                </button>
+                <button 
+                  onClick={handleSync}
+                  disabled={isSyncing}
+                  className="px-4 py-2 bg-emerald-glow hover:bg-emerald-bright disabled:opacity-70 disabled:hover:bg-emerald-glow text-[#0d0d11] rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                >
+                  {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <Users size={16} />}
+                  {isSyncing ? syncMessage : "Sync ATS Data"}
+                </button>
+              </div>
             </div>
 
             {/* Controls */}
