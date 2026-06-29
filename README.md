@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1200&auto=format&fit=crop" alt="Sarvam Recruiter 3D Banner" width="100%" style="border-radius: 12px; margin-bottom: 20px;"/>
+  <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop" alt="Sarvam Recruiter Network Banner" width="100%" style="border-radius: 12px; margin-bottom: 20px;"/>
 
   # 🧠 Sarvam Recruiter (IntelliSpec)
   **Next-Generation Recruitment & Predictive Ranking Platform**
