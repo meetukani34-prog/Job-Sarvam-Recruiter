@@ -13,7 +13,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Any
 
-from rank import rank_candidates
+from _rank import rank_candidates
 
 # ── App Configuration ────────────────────────────────────────────────────
 
