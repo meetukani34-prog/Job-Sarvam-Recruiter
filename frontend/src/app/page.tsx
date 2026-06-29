@@ -41,30 +41,76 @@ export default function DashboardPage() {
     setCandidates([]);
     setSelectedCandidate(null);
     try {
-      const res = await fetch(`${API_BASE}/api/rank-samples`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-
-      const json: RankingResponse = await res.json();
-
-      if (json.success && json.data) {
-        setMetrics({
-          totalEvaluated: json.data.metadata.total_evaluated,
-          stuffersFlagged: json.data.metadata.stuffers_flagged,
-          honeypotsPurged: json.data.metadata.honeypots_purged,
-          executionTime: json.data.metadata.execution_time_ms,
-        });
-
-        // Store real data globally so other dashboards don't need fake data
-        localStorage.setItem('sarvam_rankings', JSON.stringify(json.data.rankings));
-        localStorage.setItem('sarvam_metrics', JSON.stringify(json.data.metadata));
-
-        setAllRankings(json.data.rankings);
-        setHasRun(true);
+      const allCands = payload.candidates || [];
+      const CHUNK_SIZE = 1000;
+      const chunks = [];
+      for (let i = 0; i < allCands.length; i += CHUNK_SIZE) {
+        chunks.push(allCands.slice(i, i + CHUNK_SIZE));
       }
+
+      if (chunks.length === 0) throw new Error("No candidates provided");
+
+      let combinedRankings: RankedCandidate[] = [];
+      let totalEvaluated = 0;
+      let stuffersFlagged = 0;
+      let honeypotsPurged = 0;
+      let totalExecutionTime = 0;
+
+      // Process chunks in parallel
+      const promises = chunks.map(async (chunk) => {
+        const res = await fetch(`${API_BASE}/api/rank-samples`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidates: chunk }),
+        });
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        return res.json() as Promise<RankingResponse>;
+      });
+
+      const results = await Promise.all(promises);
+
+      results.forEach((json) => {
+        if (json.success && json.data) {
+          combinedRankings.push(...json.data.rankings);
+          totalEvaluated += json.data.metadata.total_evaluated;
+          stuffersFlagged += json.data.metadata.stuffers_flagged;
+          honeypotsPurged += json.data.metadata.honeypots_purged;
+          totalExecutionTime += json.data.metadata.execution_time_ms;
+        }
+      });
+
+      // Re-sort combined rankings
+      combinedRankings.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return String(a.candidate_id).localeCompare(String(b.candidate_id));
+      });
+
+      // Take Top 100 overall
+      const finalTop100 = combinedRankings.slice(0, 100).map((cand, idx) => ({
+        ...cand,
+        rank: idx + 1
+      }));
+
+      const finalMetrics = {
+        totalEvaluated,
+        stuffersFlagged,
+        honeypotsPurged,
+        executionTime: totalExecutionTime,
+      };
+
+      setMetrics(finalMetrics);
+
+      // Store real data globally
+      localStorage.setItem('sarvam_rankings', JSON.stringify(finalTop100));
+      localStorage.setItem('sarvam_metrics', JSON.stringify({
+        total_evaluated: totalEvaluated,
+        stuffers_flagged: stuffersFlagged,
+        honeypots_purged: honeypotsPurged,
+        execution_time_ms: totalExecutionTime,
+      }));
+
+      setAllRankings(finalTop100);
+      setHasRun(true);
     } catch (err) {
       console.error("Ranking failed:", err);
       alert("Failed to process ranking. Ensure it is a valid JSON array of candidates.");

@@ -122,26 +122,29 @@ def generate_reasoning(candidate, score) -> str:
     else:
         return f"Engineering candidate with some skill overlaps but lacks targeted product experience depth or presents lower behavioral engagement signals."
 
-def save_final_submission_file(processed_ranked_list, output_path="submission.csv"):
+def save_final_submission_file(processed_ranked_list, output_path="/tmp/submission.csv"):
     """
     Ensure this is writing the newly calculated sorted elements, 
     NOT the raw un-scored query pool.
     """
     import csv
     
-    with open(output_path, mode='w', encoding='utf-8', newline='') as f:
-        writer = csv.writer(f)
-        # Required header as per validator
-        writer.writerow(["candidate_id", "rank", "score", "reasoning"]) 
-        
-        for item in processed_ranked_list[:100]: # Top 100 entries only
-            writer.writerow([
-                item["candidate_id"],
-                int(item["rank"]),
-                float(item["score"]),
-                str(item["reasoning"])
-            ])
-    print(f"Successfully exported accurate facts to {output_path}")
+    try:
+        with open(output_path, mode='w', encoding='utf-8', newline='') as f:
+            writer = csv.writer(f)
+            # Required header as per validator
+            writer.writerow(["candidate_id", "rank", "score", "reasoning"]) 
+            
+            for item in processed_ranked_list[:100]: # Top 100 entries only
+                writer.writerow([
+                    item["candidate_id"],
+                    int(item["rank"]),
+                    float(item["score"]),
+                    str(item["reasoning"])
+                ])
+        print(f"Successfully exported accurate facts to {output_path}")
+    except OSError as e:
+        print(f"Skipping CSV export (likely read-only filesystem): {e}")
 
 def rank_candidates(all_candidates: list[dict]) -> dict:
     """Execute the full pipeline returning top 100 structure"""
